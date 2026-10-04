@@ -1,0 +1,7 @@
+/target
+/tracy/
+*.tracy
+*.zip
+*.ndjson
+/private/
+/local/
