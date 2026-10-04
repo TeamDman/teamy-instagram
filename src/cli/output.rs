@@ -93,7 +93,7 @@ impl CliOutput {
         }
         writer.flush().wrap_err("failed to flush command output")?;
         if self.1 {
-            eyre::bail!("recognized entries failed validation; see coverage report")
+            eyre::bail!("recognized entries failed validation; see coverage report");
         }
         Ok(())
     }
@@ -252,7 +252,7 @@ mod tests {
                 .contains("failed to serialize command output as CSV")
         );
         assert_eq!(error.root_cause().to_string(), "format serializer error");
-        assert!(writer.bytes.is_empty());
+        assert_eq!(writer.bytes, Vec::<u8>::new());
         assert_eq!(writer.flushes, 0);
     }
 
@@ -326,7 +326,7 @@ mod tests {
         CliOutput::none()
             .emit_to(&mut writer, Some(OutputFormat::Csv), false)
             .expect("no output does not use writer");
-        assert!(writer.bytes.is_empty());
+        assert_eq!(writer.bytes, Vec::<u8>::new());
         assert_eq!(writer.flushes, 0);
     }
 }

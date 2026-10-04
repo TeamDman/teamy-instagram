@@ -21,10 +21,12 @@ pub enum ArchiveCommand {
 impl ArchiveArgs {
     /// # Errors
     /// Returns an error on archive failure or cancellation.
-    #[expect(clippy::unused_async, reason = "shared async CLI dispatch convention")]
-    pub async fn invoke(self, cancellation: &CancellationToken) -> eyre::Result<CliOutput> {
-        match self.command {
+    pub fn invoke(
+        self,
+        cancellation: &CancellationToken,
+    ) -> std::future::Ready<eyre::Result<CliOutput>> {
+        std::future::ready(match self.command {
             ArchiveCommand::Validate(args) => args.invoke(cancellation),
-        }
+        })
     }
 }
