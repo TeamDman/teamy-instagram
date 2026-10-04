@@ -85,6 +85,7 @@ fn recursive_activity_arrays_parse_for_each_supported_category() {
         ArchiveEntryCategory::SavedPosts,
         ArchiveEntryCategory::LikedPosts,
         ArchiveEntryCategory::StoriesViewed,
+        ArchiveEntryCategory::AdWatchedVideos,
     ] {
         let summary =
             validate_json(category, ACTIVITY.as_bytes()).expect("synthetic activity parses");
@@ -439,4 +440,41 @@ fn duplicate_keys_cannot_replace_source_values() {
         validate_json(ArchiveEntryCategory::SavedPosts, invalid.as_bytes()),
         Err(ArchiveEntryErrorCode::SchemaMismatch)
     );
+}
+
+#[test]
+fn ad_watched_video_service_path_is_distinct_and_root_wrapping_is_supported() {
+    for name in [
+        "ads_information/ads_and_topics/videos_watched.json",
+        "synthetic-root/ads_information/ads_and_topics/videos_watched.json",
+    ] {
+        assert_eq!(
+            classify_entry(name),
+            Some(ArchiveEntryCategory::AdWatchedVideos)
+        );
+    }
+    assert_eq!(
+        classify_entry("your_instagram_activity/ads_and_topics/videos_watched.json"),
+        None
+    );
+}
+
+#[test]
+fn watched_video_empty_vectors_parse_but_nonempty_vectors_remain_unsupported() {
+    let empty = ACTIVITY.replacen(
+        r#""label":"Synthetic leaf""#,
+        r#""vec":[],"label":"Synthetic leaf""#,
+        1,
+    );
+    let summary = validate_json(ArchiveEntryCategory::AdWatchedVideos, empty.as_bytes())
+        .expect("known empty vectors parse");
+    assert_eq!(summary.record_count, 1);
+
+    for vector in [r#""vec":[{}]"#, r#""vec":[{"unknown":"synthetic"}]"#] {
+        let invalid = empty.replacen(r#""vec":[]"#, vector, 1);
+        assert_eq!(
+            validate_json(ArchiveEntryCategory::AdWatchedVideos, invalid.as_bytes()),
+            Err(ArchiveEntryErrorCode::SchemaMismatch)
+        );
+    }
 }

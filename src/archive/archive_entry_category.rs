@@ -9,6 +9,7 @@ pub enum ArchiveEntryCategory {
     LikedComments,
     MessageThread,
     StoriesViewed,
+    AdWatchedVideos,
     UnsupportedJson,
     Media,
     Other,

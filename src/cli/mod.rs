@@ -2,10 +2,12 @@ pub mod archive;
 pub mod facet_shape;
 pub mod global_args;
 pub mod output;
+pub mod roots;
 
 use crate::cli::archive::ArchiveArgs;
 use crate::cli::global_args::GlobalArgs;
 use crate::cli::output::CliOutput;
+use crate::cli::roots::RootsArgs;
 use arbitrary::Arbitrary;
 use eyre::Context;
 use facet::Facet;
@@ -14,7 +16,7 @@ use figue::{self as args};
 use std::time::Duration;
 use teamy_cancellation::CancellationToken;
 
-/// Validate selected typed JSON sections in a local Instagram export ZIP.
+/// Manage archive roots, inventory exports, and validate or list reel activity.
 /// Unknown sections remain explicitly unsupported. Export data is never logged.
 #[derive(Facet, Arbitrary, Debug)]
 pub struct Cli {
@@ -51,12 +53,17 @@ impl Cli {
 pub enum Command {
     /// Inspect a compressed archive without extracting files.
     Archive(ArchiveArgs),
+    /// Configure canonical archive roots in local application data.
+    Roots(RootsArgs),
 }
 
 impl Command {
     #[must_use]
     pub const fn name(&self) -> &'static str {
-        "archive validate"
+        match self {
+            Self::Archive(args) => args.name(),
+            Self::Roots(args) => args.name(),
+        }
     }
 
     /// Archive runtime depends on export size; entry reads have byte bounds.
@@ -71,6 +78,7 @@ impl Command {
         cancellation_token.bail_if_cancelled()?;
         match self {
             Self::Archive(args) => args.invoke(&cancellation_token).await,
+            Self::Roots(args) => args.invoke(&cancellation_token).await,
         }
     }
 }

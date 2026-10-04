@@ -11,5 +11,6 @@ pub use archive_entry_error_code::ArchiveEntryErrorCode;
 pub use archive_entry_report::ArchiveEntryReport;
 pub use archive_entry_status::ArchiveEntryStatus;
 pub use validate_archive::validate_archive;
+pub(crate) use validate_archive::visit_archive;
 pub use validation_limits::ValidationLimits;
 pub use validation_report::ValidationReport;

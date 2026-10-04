@@ -4,6 +4,7 @@ use facet::Facet;
 #[derive(Facet, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ArchiveEntryErrorCode {
+    ActivityLimitExceeded,
     EntryUnavailable,
     EntryTooLarge,
     TotalReadLimit,

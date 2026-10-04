@@ -46,7 +46,15 @@ pub use string_list_data::StringListData;
 /// irrelevant and is never retained. Other filenames remain unsupported.
 #[must_use]
 pub fn classify_entry(name: &str) -> Option<ArchiveEntryCategory> {
+    const ADS_ROOT: &str = "ads_information/";
     const ACTIVITY_ROOT: &str = "your_instagram_activity/";
+    let ads_relative = name.strip_prefix(ADS_ROOT).or_else(|| {
+        name.split_once("/ads_information/")
+            .map(|(_, relative)| relative)
+    });
+    if ads_relative == Some("ads_and_topics/videos_watched.json") {
+        return Some(ArchiveEntryCategory::AdWatchedVideos);
+    }
     let relative = name.strip_prefix(ACTIVITY_ROOT).or_else(|| {
         name.split_once("/your_instagram_activity/")
             .map(|(_, relative)| relative)
@@ -98,9 +106,16 @@ pub fn validate_json(
     match category {
         ArchiveEntryCategory::SavedPosts
         | ArchiveEntryCategory::LikedPosts
-        | ArchiveEntryCategory::StoriesViewed => {
+        | ArchiveEntryCategory::StoriesViewed
+        | ArchiveEntryCategory::AdWatchedVideos => {
             let records: Vec<ExportRecord> = parse_json(bytes)?;
-            if records.iter().any(|record| !record.media.is_empty()) {
+            if records.iter().any(|record| {
+                !record.media.is_empty()
+                    || record
+                        .label_values
+                        .iter()
+                        .any(ExportLabelValue::has_unsupported_vec)
+            }) {
                 return Err(ArchiveEntryErrorCode::SchemaMismatch);
             }
             Ok(ParsedEntrySummary {
@@ -152,7 +167,7 @@ fn count(length: usize) -> Result<u64, ArchiveEntryErrorCode> {
         .map_err(|_error| ArchiveEntryErrorCode::SchemaMismatch)
 }
 
-fn parse_json<T: Facet<'static>>(bytes: &[u8]) -> Result<T, ArchiveEntryErrorCode> {
+pub(crate) fn parse_json<T: Facet<'static>>(bytes: &[u8]) -> Result<T, ArchiveEntryErrorCode> {
     strict_json::check::<T>(bytes)?;
     facet_json::from_slice(bytes).map_err(|error| sanitized_parse_error(&error))
 }

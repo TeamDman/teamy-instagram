@@ -1,8 +1,13 @@
+pub mod activity;
+pub mod activity_report;
 pub mod archive;
+pub mod catalog;
 pub mod cli;
 pub mod command_timing;
+pub mod identity;
 pub mod logging_init;
 pub mod models;
+pub mod reels;
 #[cfg(windows)]
 mod windows_startup;
 

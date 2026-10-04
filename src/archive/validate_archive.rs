@@ -28,6 +28,27 @@ pub fn validate_archive(
     limits: &ValidationLimits,
     cancellation: &CancellationToken,
 ) -> eyre::Result<ValidationReport> {
+    visit_archive(
+        path,
+        limits,
+        cancellation,
+        &mut |category, _index, bytes| models::validate_json(category, bytes),
+    )
+}
+
+pub(crate) fn visit_archive<F>(
+    path: &Path,
+    limits: &ValidationLimits,
+    cancellation: &CancellationToken,
+    visitor: &mut F,
+) -> eyre::Result<ValidationReport>
+where
+    F: FnMut(
+        ArchiveEntryCategory,
+        usize,
+        &[u8],
+    ) -> Result<models::ParsedEntrySummary, ArchiveEntryErrorCode>,
+{
     cancellation.bail_if_cancelled()?;
     validate_limits(limits)?;
     let file =
@@ -72,8 +93,15 @@ pub fn validate_archive(
         let remaining = limits
             .max_total_read_bytes
             .saturating_sub(report.inspected_bytes);
-        let (entry_report, read_bytes) =
-            validate_known_entry(&mut entry, index, category, limits, remaining, cancellation)?;
+        let (entry_report, read_bytes) = validate_known_entry(
+            &mut entry,
+            index,
+            category,
+            limits,
+            remaining,
+            cancellation,
+            visitor,
+        )?;
         report.inspected_bytes = report.inspected_bytes.saturating_add(read_bytes);
         report.push(entry_report);
     }
@@ -84,14 +112,22 @@ pub fn validate_archive(
     Ok(report)
 }
 
-fn validate_known_entry(
+fn validate_known_entry<F>(
     entry: &mut ZipFile<'_, File>,
     index: usize,
     category: ArchiveEntryCategory,
     limits: &ValidationLimits,
     remaining: u64,
     cancellation: &CancellationToken,
-) -> eyre::Result<(ArchiveEntryReport, u64)> {
+    visitor: &mut F,
+) -> eyre::Result<(ArchiveEntryReport, u64)>
+where
+    F: FnMut(
+        ArchiveEntryCategory,
+        usize,
+        &[u8],
+    ) -> Result<models::ParsedEntrySummary, ArchiveEntryErrorCode>,
+{
     if entry.size() > limits.max_entry_bytes {
         return Ok((
             failure(index, category, ArchiveEntryErrorCode::EntryTooLarge),
@@ -118,7 +154,7 @@ fn validate_known_entry(
         return Ok((failure(index, category, error), read_bytes));
     }
     cancellation.bail_if_cancelled()?;
-    let entry_report = match models::validate_json(category, &bytes) {
+    let entry_report = match visitor(category, index, &bytes) {
         Ok(summary) => ArchiveEntryReport {
             index,
             category,

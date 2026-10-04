@@ -3,7 +3,7 @@ name = "teamy-instagram"
 version = "0.1.0"
 edition = "2024"
 authors = ["TeamDman"]
-description = "Typed local Instagram export validation"
+description = "Local Instagram archive inventory and reel activity"
 license = "MPL-2.0"
 readme = "README.md"
 repository = "https://github.com/TeamDman/teamy-instagram"
@@ -36,6 +36,7 @@ facet-json = { git = "https://github.com/TeamDman/facet.git", rev = "23ad4dcd0",
 facet-pretty = { git = "https://github.com/TeamDman/facet.git", rev = "23ad4dcd0", package = "facet-pretty" }
 figue = { git = "https://github.com/TeamDman/facet.git", rev = "23ad4dcd0", package = "figue", features = ["arbitrary"] }
 open = "5"
+url = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = [
