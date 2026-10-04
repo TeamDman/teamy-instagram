@@ -180,7 +180,10 @@ fn nested_url_in_unrelated_query_does_not_become_separate_evidence() {
 
 #[test]
 fn bare_domains_and_plain_text_are_not_urls() {
-    assert!(find_references("Synthetic plain text instagram.com/reel/SyntheticOne/").is_empty());
+    assert_eq!(
+        find_references("Synthetic plain text instagram.com/reel/SyntheticOne/"),
+        Vec::<teamy_instagram::reels::LocatedReference>::new()
+    );
 }
 
 #[test]
