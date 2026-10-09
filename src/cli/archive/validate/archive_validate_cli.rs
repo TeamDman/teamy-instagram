@@ -32,8 +32,21 @@ impl ValidateArgs {
         if let Some(value) = self.max_total_bytes {
             limits.max_total_read_bytes = value;
         }
+        // Setup, 100 ms per permitted MiB of JSON, and 1 ms per ZIP directory entry.
+        let threshold = Some(
+            std::time::Duration::from_secs(3)
+                .saturating_add(std::time::Duration::from_millis(
+                    limits
+                        .max_total_read_bytes
+                        .div_ceil(1024 * 1024)
+                        .saturating_mul(100),
+                ))
+                .saturating_add(std::time::Duration::from_millis(
+                    u64::try_from(limits.max_entries).unwrap_or(u64::MAX),
+                )),
+        );
         let report = validate_archive(Path::new(&self.zip_path), &limits, cancellation)?;
         let failed = report.has_failures();
-        Ok(CliOutput::facet(report).with_failure(failed))
+        Ok(CliOutput::facet(report, threshold).with_failure(failed))
     }
 }

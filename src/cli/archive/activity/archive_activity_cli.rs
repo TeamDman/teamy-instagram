@@ -41,12 +41,25 @@ impl ActivityArgs {
             limits.max_total_read_bytes = value;
         }
         let identity = ExporterIdentity::new(self.self_label)?;
+        // Setup, 100 ms per permitted MiB of JSON, and 1 ms per ZIP directory entry.
+        let threshold = Some(
+            std::time::Duration::from_secs(3)
+                .saturating_add(std::time::Duration::from_millis(
+                    limits
+                        .max_total_read_bytes
+                        .div_ceil(1024 * 1024)
+                        .saturating_mul(100),
+                ))
+                .saturating_add(std::time::Duration::from_millis(
+                    u64::try_from(limits.max_entries).unwrap_or(u64::MAX),
+                )),
+        );
         let report = extract_archive(Path::new(&self.zip_path), &limits, &identity, cancellation)?;
         let failed = report.has_failures();
         let output = if self.summary {
-            CliOutput::facet(report.aggregate_summary())
+            CliOutput::facet(report.aggregate_summary(), threshold)
         } else {
-            CliOutput::facet(report)
+            CliOutput::facet(report, threshold)
         };
         Ok(output.with_failure(failed))
     }

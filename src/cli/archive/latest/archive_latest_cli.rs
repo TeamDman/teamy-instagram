@@ -47,7 +47,18 @@ impl LatestArgs {
                 .try_into()
                 .map_err(|_error| CatalogError::InvalidInventoryLimits)?;
         }
+        // Directory traversal and rendering: setup plus 2 ms per permitted entry.
+        let threshold = Some(
+            std::time::Duration::from_secs(2).saturating_add(std::time::Duration::from_millis(
+                u64::try_from(limits.max_entries)
+                    .unwrap_or(u64::MAX)
+                    .saturating_mul(2),
+            )),
+        );
         let inventory = inventory_roots(&store.list()?, &limits, cancellation)?;
-        Ok(CliOutput::facet(select_latest(&inventory, date_basis)))
+        Ok(CliOutput::facet(
+            select_latest(&inventory, date_basis),
+            threshold,
+        ))
     }
 }

@@ -14,6 +14,10 @@ impl RootsListArgs {
     /// # Errors
     /// Returns a fixed code for unreadable or invalid settings.
     pub fn invoke(self, store: &RootsStore) -> eyre::Result<CliOutput> {
-        Ok(CliOutput::facet(store.list()?))
+        // A small local settings read/write and path check.
+        Ok(CliOutput::facet(
+            store.list()?,
+            Some(std::time::Duration::from_secs(1)),
+        ))
     }
 }

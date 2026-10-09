@@ -16,6 +16,10 @@ impl RootsAddArgs {
     /// # Errors
     /// Returns a fixed code for an invalid directory or settings failure.
     pub fn invoke(self, store: &RootsStore) -> eyre::Result<CliOutput> {
-        Ok(CliOutput::facet(store.add(Path::new(&self.path))?))
+        // A small local settings read/write and path check.
+        Ok(CliOutput::facet(
+            store.add(Path::new(&self.path))?,
+            Some(std::time::Duration::from_secs(1)),
+        ))
     }
 }

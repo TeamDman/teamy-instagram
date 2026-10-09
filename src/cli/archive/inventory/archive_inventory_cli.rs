@@ -40,10 +40,17 @@ impl InventoryArgs {
                 .try_into()
                 .map_err(|_error| crate::catalog::CatalogError::InvalidInventoryLimits)?;
         }
-        Ok(CliOutput::facet(inventory_roots(
-            &store.list()?,
-            &limits,
-            cancellation,
-        )?))
+        // Directory traversal and rendering: setup plus 2 ms per permitted entry.
+        let threshold = Some(
+            std::time::Duration::from_secs(2).saturating_add(std::time::Duration::from_millis(
+                u64::try_from(limits.max_entries)
+                    .unwrap_or(u64::MAX)
+                    .saturating_mul(2),
+            )),
+        );
+        Ok(CliOutput::facet(
+            inventory_roots(&store.list()?, &limits, cancellation)?,
+            threshold,
+        ))
     }
 }

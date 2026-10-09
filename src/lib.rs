@@ -4,6 +4,7 @@ pub mod archive;
 pub mod catalog;
 pub mod cli;
 pub mod command_timing;
+pub mod elapsed_duration;
 pub mod identity;
 pub mod logging_init;
 pub mod models;
@@ -12,7 +13,6 @@ pub mod reels;
 mod windows_startup;
 
 use crate::cli::Cli;
-use crate::command_timing::CommandTimer;
 use chrono::DateTime;
 use chrono::Local;
 use chrono::Utc;
@@ -104,31 +104,32 @@ pub fn main() -> eyre::Result<()> {
     // Measure command work after logging setup, including output and early returns.
     let command_name = cli.command.name();
     let _command_span = tracing::info_span!("command", command = command_name).entered();
-    let mut command_timer = cli
-        .command
-        .expected_duration()
-        .map(|expected| CommandTimer::new(command_name, expected));
-    if let Some(timer) = &mut command_timer {
-        timer.checkpoint("dispatch");
-    }
-
     // Invoke whatever command was requested and render its output once at the top level
     let requested_output_format = cli.global_args.output_format;
-    let output = cli.invoke(cancellation_token.clone())?;
-    if let Some(timer) = &mut command_timer {
-        timer.checkpoint("dispatch");
-    }
-    cancellation_token.bail_if_cancelled()?;
-    let stdout = io::stdout();
-    let output_is_terminal = stdout.is_terminal();
-    if let Some(timer) = &mut command_timer {
-        timer.checkpoint("output");
-    }
-    output.emit_to(
-        &mut stdout.lock(),
-        requested_output_format,
-        output_is_terminal,
-    )?;
-    cancellation_token.bail_if_cancelled()?;
-    Ok(())
+    tracing::debug!(command = command_name, "Dispatching command");
+    let started = std::time::Instant::now();
+    let result = (|| {
+        let output = cli.invoke(cancellation_token.clone())?;
+        let threshold = output.elapsed_duration_warn_threshold;
+        let result = (|| {
+            cancellation_token.bail_if_cancelled()?;
+            let stdout = io::stdout();
+            let output_is_terminal = stdout.is_terminal();
+            output.emit_to(
+                &mut stdout.lock(),
+                requested_output_format,
+                output_is_terminal,
+            )?;
+            cancellation_token.bail_if_cancelled()?;
+            Ok(())
+        })();
+        elapsed_duration::warn_if_exceeded(command_name, started.elapsed(), threshold);
+        result
+    })();
+    tracing::debug!(
+        command = command_name,
+        success = result.is_ok(),
+        "Command completed"
+    );
+    result
 }

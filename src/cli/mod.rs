@@ -13,7 +13,6 @@ use eyre::Context;
 use facet::Facet;
 use figue::FigueBuiltins;
 use figue::{self as args};
-use std::time::Duration;
 use teamy_cancellation::CancellationToken;
 
 /// Manage archive roots, inventory exports, and validate or list reel activity.
@@ -64,12 +63,6 @@ impl Command {
             Self::Archive(args) => args.name(),
             Self::Roots(args) => args.name(),
         }
-    }
-
-    /// Archive runtime depends on export size; entry reads have byte bounds.
-    #[must_use]
-    pub const fn expected_duration(&self) -> Option<Duration> {
-        None
     }
 
     /// # Errors

@@ -16,6 +16,10 @@ impl RootsRemoveArgs {
     /// # Errors
     /// Returns a fixed code for a non-UTF-8 path or settings failure.
     pub fn invoke(self, store: &RootsStore) -> eyre::Result<CliOutput> {
-        Ok(CliOutput::facet(store.remove(Path::new(&self.path))?))
+        // A small local settings read/write and path check.
+        Ok(CliOutput::facet(
+            store.remove(Path::new(&self.path))?,
+            Some(std::time::Duration::from_secs(1)),
+        ))
     }
 }
